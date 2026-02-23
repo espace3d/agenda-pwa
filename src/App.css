@@ -601,9 +601,8 @@ body {
   border-top: 1.5px solid var(--border-card);
   border-bottom: 1.5px solid var(--border-card);
   border-radius: 8px;
-  background: var(--surface);
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 .time-picker-sep {
