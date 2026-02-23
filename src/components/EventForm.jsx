@@ -89,7 +89,6 @@ export default function EventForm({ event, selectedMonth, onSave, onClose, event
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Titre de l'événement"
-                autoFocus
               />
               {supported && (
                 <button

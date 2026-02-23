@@ -29,6 +29,12 @@
   --input-border: #1a1a1a;
   --chip-active-bg: #fff;
   --chip-active-text: #1a1a1a;
+  --picker-bar-bg: #f0f0f2;
+  --picker-bar-text: #1a1a1a;
+  --picker-btn-text: #666;
+  --picker-btn-hover: rgba(0,0,0,0.06);
+  --picker-selected-bg: #1a1a1a;
+  --picker-selected-text: #fff;
 }
 
 [data-theme="dark"] {
@@ -61,6 +67,12 @@
   --input-border: #d5d5da;
   --chip-active-bg: #0c0c0e;
   --chip-active-text: #d5d5da;
+  --picker-bar-bg: #28282f;
+  --picker-bar-text: #d5d5da;
+  --picker-btn-text: #b0b0b6;
+  --picker-btn-hover: rgba(255,255,255,0.1);
+  --picker-selected-bg: #d5d5da;
+  --picker-selected-text: #131316;
 }
 
 * {
@@ -596,13 +608,13 @@ body {
 }
 
 .datepicker-header {
-  background: var(--nav-bg);
+  background: var(--picker-bar-bg);
   padding: 14px 16px;
   border-radius: 16px 16px 0 0;
 }
 
 .datepicker-header-label {
-  color: #fff;
+  color: var(--picker-bar-text);
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -685,8 +697,8 @@ body {
 }
 
 .datepicker-cell.selected {
-  background: var(--nav-bg);
-  color: #fff;
+  background: var(--picker-selected-bg);
+  color: var(--picker-selected-text);
   font-weight: 700;
 }
 
@@ -695,7 +707,7 @@ body {
   justify-content: flex-end;
   gap: 4px;
   padding: 8px 12px 12px;
-  background: var(--nav-bg);
+  background: var(--picker-bar-bg);
   border-radius: 0 0 16px 16px;
 }
 
@@ -703,7 +715,7 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  color: #fff;
+  color: var(--picker-btn-text);
   font-size: 0.82rem;
   font-weight: 600;
   padding: 8px 14px;
@@ -712,11 +724,11 @@ body {
 }
 
 .datepicker-btn:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--picker-btn-hover);
 }
 
 .datepicker-btn.primary {
-  color: #fff;
+  color: var(--picker-bar-text);
   font-weight: 700;
 }
 
