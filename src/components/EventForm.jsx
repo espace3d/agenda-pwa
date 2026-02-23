@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Mic } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { parseVoiceInput } from '../utils/dateUtils';
+import TimePicker from './TimePicker';
 
 const DURATIONS = [
   { value: '30min', label: '30 min' },
@@ -116,11 +117,7 @@ export default function EventForm({ event, selectedMonth, onSave, onClose, event
           {duration !== 'day' && (
             <div className="form-field">
               <label>Heure</label>
-              <input
-                type="time"
-                value={time}
-                onChange={e => setTime(e.target.value)}
-              />
+              <TimePicker value={time} onChange={setTime} />
             </div>
           )}
 

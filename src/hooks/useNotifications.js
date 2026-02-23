@@ -5,11 +5,24 @@ import { getNotifiedSet, addNotified } from '../utils/storage';
 const NOTIFY_BEFORE_MS = 30 * 60 * 1000;
 const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 5;
-const CHECK_INTERVAL_MS = 30 * 1000;
+const CHECK_INTERVAL_MS = 15 * 1000;
+
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
 
 function playBeeps() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
     for (let i = 0; i < 5; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -17,12 +30,16 @@ function playBeeps() {
       gain.connect(ctx.destination);
       osc.frequency.value = 880;
       osc.type = 'sine';
-      gain.gain.value = 0.3;
-      const start = ctx.currentTime + i * 0.4;
+      gain.gain.value = 0.4;
+      const start = now + i * 0.4;
       osc.start(start);
-      osc.stop(start + 0.15);
+      gain.gain.setValueAtTime(0.4, start);
+      gain.gain.exponentialRampToValueAtTime(0.01, start + 0.15);
+      osc.stop(start + 0.2);
     }
-  } catch {}
+  } catch (e) {
+    console.warn('Beep failed:', e);
+  }
 }
 
 function vibrate() {
@@ -33,33 +50,51 @@ function vibrate() {
   } catch {}
 }
 
+async function ensureNotificationPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
 async function showNotification(event) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') {
-    await Notification.requestPermission();
-  }
-  if (Notification.permission === 'granted') {
+  const granted = await ensureNotificationPermission();
+  if (!granted) return;
+
+  const timeStr = event.time ? ` à ${event.time.replace(':', 'h')}` : '';
+  const [y, m, d] = event.date.split('-');
+  const dateStr = `${d}/${m}/${y}`;
+  const body = `${dateStr}${timeStr} — dans 30 minutes`;
+
+  try {
     const reg = await navigator.serviceWorker?.ready;
-    const timeStr = event.time ? ` à ${event.time.replace(':', 'h')}` : '';
-    const [y, m, d] = event.date.split('-');
-    const dateStr = `${d}/${m}/${y}`;
-    if (reg) {
-      reg.showNotification(`⏳ ${event.title}`, {
-        body: `${dateStr}${timeStr}`,
+    if (reg?.showNotification) {
+      await reg.showNotification(`⏳ ${event.title}`, {
+        body,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         tag: `event-${event.id}`,
         requireInteraction: true,
+        vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
         actions: [{ action: 'stop', title: 'Arrêter' }]
       });
-    } else {
-      new Notification(`⏳ ${event.title}`, {
-        body: `${dateStr}${timeStr}`,
-        icon: '/icons/icon-192.png',
-        tag: `event-${event.id}`
-      });
+      return;
     }
-  }
+  } catch {}
+
+  try {
+    new Notification(`⏳ ${event.title}`, {
+      body,
+      icon: '/icons/icon-192.png',
+      tag: `event-${event.id}`
+    });
+  } catch {}
+}
+
+export function requestNotificationPermission() {
+  ensureNotificationPermission();
+  try { getAudioContext(); } catch {}
 }
 
 export function useNotifications(events) {
@@ -67,47 +102,46 @@ export function useNotifications(events) {
   const checkIntervalRef = useRef(null);
 
   const triggerAlarm = useCallback((event) => {
-    const existing = activeAlarmsRef.current.get(event.id);
-    if (existing) return;
+    if (activeAlarmsRef.current.has(event.id)) return;
 
     let retryCount = 0;
     let retryTimer = null;
+    let stopped = false;
 
     const runSequence = () => {
+      if (stopped) return;
       playBeeps();
       vibrate();
       showNotification(event);
     };
 
-    const startRetries = () => {
-      if (retryCount >= MAX_RETRIES) {
-        stopAlarm(event.id);
+    const scheduleRetry = () => {
+      if (stopped || retryCount >= MAX_RETRIES) {
+        activeAlarmsRef.current.delete(event.id);
         return;
       }
       retryTimer = setTimeout(() => {
         retryCount++;
         runSequence();
-        startRetries();
+        scheduleRetry();
       }, RETRY_INTERVAL_MS);
     };
 
-    const stopAlarm = (id) => {
+    const stop = () => {
+      stopped = true;
       clearTimeout(retryTimer);
-      activeAlarmsRef.current.delete(id);
+      activeAlarmsRef.current.delete(event.id);
     };
 
-    activeAlarmsRef.current.set(event.id, { stop: () => stopAlarm(event.id) });
+    activeAlarmsRef.current.set(event.id, { stop });
     addNotified(event.id);
     runSequence();
-    startRetries();
+    scheduleRetry();
   }, []);
 
   const stopAlarm = useCallback((eventId) => {
     const alarm = activeAlarmsRef.current.get(eventId);
-    if (alarm) {
-      alarm.stop();
-      activeAlarmsRef.current.delete(eventId);
-    }
+    if (alarm) alarm.stop();
   }, []);
 
   const stopAllAlarms = useCallback(() => {
@@ -116,23 +150,20 @@ export function useNotifications(events) {
   }, []);
 
   useEffect(() => {
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
     const checkEvents = () => {
       const now = Date.now();
       const notified = getNotifiedSet();
 
       events.forEach(event => {
         if (notified.has(event.id)) return;
+        if (activeAlarmsRef.current.has(event.id)) return;
         if (event.duration === 'day' && !event.time) return;
 
         const eventTime = getEventDateTime(event).getTime();
         const notifyAt = eventTime - NOTIFY_BEFORE_MS;
-        const diff = notifyAt - now;
+        const diff = now - notifyAt;
 
-        if (diff <= 0 && diff > -RETRY_INTERVAL_MS) {
+        if (diff >= 0 && diff < NOTIFY_BEFORE_MS) {
           triggerAlarm(event);
         }
       });
@@ -141,28 +172,21 @@ export function useNotifications(events) {
     checkEvents();
     checkIntervalRef.current = setInterval(checkEvents, CHECK_INTERVAL_MS);
 
-    return () => {
-      clearInterval(checkIntervalRef.current);
-    };
+    return () => clearInterval(checkIntervalRef.current);
   }, [events, triggerAlarm]);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        const eventData = events.map(e => ({
-          id: e.id,
-          title: e.title,
-          date: e.date,
-          time: e.time,
-          duration: e.duration
-        }));
-        reg.active?.postMessage({ type: 'SYNC_EVENTS', events: eventData });
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(reg => {
+      const eventData = events.map(e => ({
+        id: e.id, title: e.title, date: e.date, time: e.time, duration: e.duration
+      }));
+      reg.active?.postMessage({ type: 'SYNC_EVENTS', events: eventData });
 
-        if (reg.periodicSync) {
-          reg.periodicSync.register('check-events', { minInterval: 60000 }).catch(() => {});
-        }
-      });
-    }
+      if (reg.periodicSync) {
+        reg.periodicSync.register('check-events', { minInterval: 60000 }).catch(() => {});
+      }
+    });
   }, [events]);
 
   useEffect(() => {

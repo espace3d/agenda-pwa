@@ -8,7 +8,7 @@ import ConfirmModal from './components/ConfirmModal';
 import Toast from './components/Toast';
 import { loadEvents, saveEvents, loadTheme, saveTheme, removeNotified } from './utils/storage';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import { useNotifications } from './hooks/useNotifications';
+import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
 import { parseVoiceInput, formatShareText, isPast, getEventDateTime } from './utils/dateUtils';
 import './App.css';
 
@@ -34,6 +34,15 @@ export default function App() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  useEffect(() => {
+    const handler = () => {
+      requestNotificationPermission();
+      document.removeEventListener('click', handler);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
 
   const handleSaveEvent = (eventData) => {
     setEvents(prev => {

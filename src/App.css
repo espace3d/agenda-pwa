@@ -577,6 +577,98 @@ body {
   font-weight: 600;
 }
 
+/* Time Picker (iOS wheel style) */
+.time-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: var(--hover-surface);
+  border-radius: 12px;
+  padding: 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.time-picker::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+  border-top: 1.5px solid var(--border-card);
+  border-bottom: 1.5px solid var(--border-card);
+  border-radius: 8px;
+  background: var(--surface);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.time-picker-sep {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  z-index: 2;
+  padding: 0 2px;
+}
+
+.wheel-column {
+  flex: 1;
+  max-width: 80px;
+  position: relative;
+}
+
+.wheel-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y mandatory;
+}
+
+.wheel-scroll::-webkit-scrollbar { display: none; }
+
+.wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-disabled);
+  cursor: pointer;
+  user-select: none;
+  scroll-snap-align: start;
+  transition: color 0.15s, font-weight 0.15s;
+  z-index: 2;
+  position: relative;
+}
+
+.wheel-item.active {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.time-picker .wheel-scroll {
+  mask-image: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(0,0,0,0.3) 20%,
+    black 35%,
+    black 65%,
+    rgba(0,0,0,0.3) 80%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(0,0,0,0.3) 20%,
+    black 35%,
+    black 65%,
+    rgba(0,0,0,0.3) 80%,
+    transparent 100%
+  );
+}
+
 .form-error {
   background: var(--danger-bg);
   color: var(--accent-danger);
