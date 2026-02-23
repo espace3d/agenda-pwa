@@ -30,10 +30,15 @@ export function useSpeechRecognition(onResult) {
 
         if (result.isFinal) {
           clearTimeout(dictSilenceRef.current);
+          clearTimeout(dictRestartRef.current);
+          dictRecognitionRef.current.onend = null;
+          dictRecognitionRef.current = null;
+          setDictating(false);
+          setDictLiveText('');
           if (transcript.length > 0) {
             onResult(transcript);
           }
-          setDictLiveText('');
+          return;
         } else {
           setDictLiveText(transcript);
           clearTimeout(dictSilenceRef.current);
