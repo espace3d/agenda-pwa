@@ -1,12 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="80" fill="#1a1a1a"/>
-  <g transform="translate(256,256)" stroke="#fff" stroke-width="20" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="-80" y1="-140" x2="80" y2="-140"/>
-    <line x1="-80" y1="140" x2="80" y2="140"/>
-    <path d="M-70,-130 L-70,-100 C-70,-40 -10,0 0,0 C10,0 70,-40 70,-100 L70,-130"/>
-    <path d="M-70,130 L-70,100 C-70,40 -10,0 0,0 C10,0 70,40 70,100 L70,130"/>
-    <circle cx="0" cy="80" r="4" fill="#fff"/>
-    <circle cx="-15" cy="95" r="3" fill="#fff"/>
-    <circle cx="15" cy="95" r="3" fill="#fff"/>
-  </g>
+  <!-- Calendar body -->
+  <rect x="96" y="140" width="320" height="280" rx="28" fill="none" stroke="#fff" stroke-width="22"/>
+  <!-- Calendar header bar -->
+  <rect x="96" y="140" width="320" height="80" rx="28" fill="#fff"/>
+  <rect x="96" y="192" width="320" height="28" fill="#fff"/>
+  <!-- Rings -->
+  <rect x="176" y="108" width="22" height="64" rx="11" fill="#fff"/>
+  <rect x="314" y="108" width="22" height="64" rx="11" fill="#fff"/>
+  <!-- Day number -->
+  <text x="256" y="360" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="150" font-weight="700" fill="#fff">23</text>
 </svg>

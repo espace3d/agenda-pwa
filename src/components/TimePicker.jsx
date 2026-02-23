@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 
-const ITEM_HEIGHT = 44;
-const VISIBLE_COUNT = 5;
+const ITEM_HEIGHT = 38;
+const VISIBLE_COUNT = 3;
 const HALF = Math.floor(VISIBLE_COUNT / 2);
 
 function WheelColumn({ items, value, onChange }) {
