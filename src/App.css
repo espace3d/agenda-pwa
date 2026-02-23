@@ -495,9 +495,7 @@ body {
   margin-bottom: 4px;
 }
 
-.form-field input[type="text"],
-.form-field input[type="date"],
-.form-field input[type="time"] {
+.form-field input[type="text"] {
   width: 100%;
   padding: 10px 12px;
   border: none;
@@ -571,6 +569,155 @@ body {
   color: #fff;
   border-color: var(--nav-bg);
   font-weight: 600;
+}
+
+/* Date Display Button */
+.date-display {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--hover-surface);
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+/* Date Picker Modal */
+.datepicker-modal {
+  background: var(--surface);
+  border-radius: 16px;
+  width: 320px;
+  max-width: 95vw;
+  overflow: hidden;
+}
+
+.datepicker-header {
+  background: var(--nav-bg);
+  padding: 14px 16px;
+  border-radius: 16px 16px 0 0;
+}
+
+.datepicker-header-label {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.datepicker-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.datepicker-nav span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.datepicker-nav button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-medium);
+  padding: 4px;
+  display: flex;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.datepicker-nav button:hover {
+  background: var(--hover-surface);
+}
+
+.datepicker-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 8px;
+}
+
+.datepicker-day-name {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+.datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 8px 8px;
+  gap: 2px;
+}
+
+.datepicker-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.datepicker-cell:hover:not(:disabled) {
+  background: var(--hover-surface);
+}
+
+.datepicker-cell.out {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.datepicker-cell.today {
+  border: 1.5px solid var(--accent-info);
+}
+
+.datepicker-cell.selected {
+  background: var(--nav-bg);
+  color: #fff;
+  font-weight: 700;
+}
+
+.datepicker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 8px 12px 12px;
+  background: var(--nav-bg);
+  border-radius: 0 0 16px 16px;
+}
+
+.datepicker-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.datepicker-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.datepicker-btn.primary {
+  color: #fff;
+  font-weight: 700;
 }
 
 /* Time Picker (iOS wheel style) */
@@ -714,15 +861,3 @@ body {
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* Color scheme for native inputs */
-@media (prefers-color-scheme: dark) {
-  [data-theme="dark"] input[type="date"],
-  [data-theme="dark"] input[type="time"] {
-    color-scheme: dark;
-  }
-}
-
-[data-theme="dark"] input[type="date"],
-[data-theme="dark"] input[type="time"] {
-  color-scheme: dark;
-}
