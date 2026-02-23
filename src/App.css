@@ -250,12 +250,7 @@ body {
   display: flex;
   align-items: center;
   padding: 11px 0;
-  border-bottom: 1px solid var(--border-sep);
   transition: opacity 0.2s;
-}
-
-.event-item:last-child {
-  border-bottom: none;
 }
 
 .event-item.past {
@@ -313,7 +308,7 @@ body {
 
 .event-actions {
   display: flex;
-  gap: 2px;
+  gap: 12px;
   margin-left: 8px;
   flex-shrink: 0;
 }
@@ -462,10 +457,23 @@ body {
 .event-form {
   background: var(--surface);
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px 16px;
   max-width: 420px;
   width: 100%;
   overflow: hidden;
+  min-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-form form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-form .submit-btn {
+  margin-top: auto;
 }
 
 .form-header {
@@ -600,7 +608,7 @@ body {
 
 /* Date Picker Modal */
 .datepicker-modal {
-  background: var(--surface);
+  background: var(--picker-bar-bg);
   border-radius: 16px;
   width: 320px;
   max-width: 95vw;
@@ -697,9 +705,14 @@ body {
 }
 
 .datepicker-cell.selected {
-  background: var(--picker-selected-bg);
-  color: var(--picker-selected-text);
+  background: #1a1a1a;
+  color: #fff;
   font-weight: 700;
+}
+
+[data-theme="dark"] .datepicker-cell.selected {
+  background: #fff;
+  color: #131316;
 }
 
 .datepicker-actions {
