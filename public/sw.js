@@ -9,6 +9,11 @@ const ASSETS = [
   '/alarm.wav'
 ];
 
+const STAGES = [
+  { offset: 30 * 60 * 1000, key: '30', label: 'dans 30 minutes' },
+  { offset: 10 * 60 * 1000, key: '10', label: 'dans 10 minutes' },
+  { offset: 0, key: '0', label: "c'est l'heure !" },
+];
 const NOTIFY_WINDOW_MS = 60 * 1000;
 let storedEvents = [];
 
@@ -122,7 +127,6 @@ function checkAndNotify() {
   const notified = getNotifiedFromStorage();
 
   storedEvents.forEach(event => {
-    if (notified.has(event.id)) return;
     if (event.duration === 'day' && !event.time) return;
 
     const [y, m, d] = event.date.split('-').map(Number);
@@ -133,31 +137,38 @@ function checkAndNotify() {
     }
 
     const eventTime = eventDate.getTime();
-    const diff = now - eventTime;
 
-    if (diff >= 0 && diff < NOTIFY_WINDOW_MS) {
-      if (!self.__notified) self.__notified = new Set();
-      self.__notified.add(event.id);
+    STAGES.forEach(stage => {
+      const stageKey = `${event.id}-${stage.key}`;
+      if (notified.has(stageKey)) return;
 
-      const timeStr = event.time ? ` à ${event.time.replace(':', 'h')}` : '';
-      const dateStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+      const triggerAt = eventTime - stage.offset;
+      const diff = now - triggerAt;
 
-      self.registration.showNotification(`⏳ ${event.title}`, {
-        body: `${dateStr}${timeStr} — c'est l'heure !`,
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
-        tag: `event-${event.id}`,
-        requireInteraction: true,
-        silent: false,
-        vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
-        actions: [{ action: 'stop', title: 'Arrêter' }]
-      });
+      if (diff >= 0 && diff < NOTIFY_WINDOW_MS) {
+        if (!self.__notified) self.__notified = new Set();
+        self.__notified.add(stageKey);
 
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({ type: 'ALARM_TRIGGERED', eventId: event.id });
+        const timeStr = event.time ? ` à ${event.time.replace(':', 'h')}` : '';
+        const dateStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+
+        self.registration.showNotification(`⏳ ${event.title}`, {
+          body: `${dateStr}${timeStr} — ${stage.label}`,
+          icon: '/icons/icon-192.png',
+          badge: '/icons/icon-192.png',
+          tag: `event-${event.id}`,
+          requireInteraction: true,
+          silent: false,
+          vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
+          actions: [{ action: 'stop', title: 'Arrêter' }]
         });
-      });
-    }
+
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ type: 'ALARM_TRIGGERED', eventId: event.id, stageKey: stage.key });
+          });
+        });
+      }
+    });
   });
 }

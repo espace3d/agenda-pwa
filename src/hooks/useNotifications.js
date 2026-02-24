@@ -1,7 +1,12 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getEventDateTime } from '../utils/dateUtils';
 import { getNotifiedSet, addNotified } from '../utils/storage';
 
+const STAGES = [
+  { offset: 30 * 60 * 1000, key: '30', label: 'dans 30 minutes' },
+  { offset: 10 * 60 * 1000, key: '10', label: 'dans 10 minutes' },
+  { offset: 0, key: '0', label: "c'est l'heure !" },
+];
 const NOTIFY_WINDOW_MS = 60 * 1000;
 const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 5;
@@ -63,14 +68,14 @@ async function ensureNotificationPermission() {
   return result === 'granted';
 }
 
-async function showNotification(event) {
+async function showNotification(event, label) {
   const granted = await ensureNotificationPermission();
   if (!granted) return;
 
   const timeStr = event.time ? ` à ${event.time.replace(':', 'h')}` : '';
   const [y, m, d] = event.date.split('-');
   const dateStr = `${d}/${m}/${y}`;
-  const body = `${dateStr}${timeStr} — c'est l'heure !`;
+  const body = `${dateStr}${timeStr} — ${label}`;
 
   try {
     const reg = await navigator.serviceWorker?.ready;
@@ -100,16 +105,18 @@ async function showNotification(event) {
 
 export function requestNotificationPermission() {
   ensureNotificationPermission();
-  // Pre-load the alarm audio so it's ready when needed
   try { getAlarmAudio(); } catch {}
 }
 
 export function useNotifications(events) {
   const activeAlarmsRef = useRef(new Map());
   const checkIntervalRef = useRef(null);
+  const [alarmPopup, setAlarmPopup] = useState(null);
 
-  const triggerAlarm = useCallback((event) => {
-    if (activeAlarmsRef.current.has(event.id)) return;
+  const triggerAlarm = useCallback((event, stage) => {
+    // Stop previous alarm for this event (previous stage)
+    const existing = activeAlarmsRef.current.get(event.id);
+    if (existing) existing.stop(true);
 
     let retryCount = 0;
     let retryTimer = null;
@@ -119,7 +126,7 @@ export function useNotifications(events) {
       if (stopped) return;
       playAlarmSound();
       vibrate();
-      showNotification(event);
+      showNotification(event, stage.label);
     };
 
     const scheduleRetry = () => {
@@ -135,15 +142,17 @@ export function useNotifications(events) {
       }, RETRY_INTERVAL_MS);
     };
 
-    const stop = () => {
+    const stop = (silent) => {
       stopped = true;
       clearTimeout(retryTimer);
       stopAlarmSound();
       activeAlarmsRef.current.delete(event.id);
+      if (!silent) setAlarmPopup(null);
     };
 
     activeAlarmsRef.current.set(event.id, { stop });
-    addNotified(event.id);
+    addNotified(`${event.id}-${stage.key}`);
+    setAlarmPopup({ event, label: stage.label });
     runSequence();
     scheduleRetry();
   }, []);
@@ -154,8 +163,9 @@ export function useNotifications(events) {
   }, []);
 
   const stopAllAlarms = useCallback(() => {
-    activeAlarmsRef.current.forEach(alarm => alarm.stop());
+    activeAlarmsRef.current.forEach(alarm => alarm.stop(true));
     activeAlarmsRef.current.clear();
+    setAlarmPopup(null);
   }, []);
 
   useEffect(() => {
@@ -164,16 +174,21 @@ export function useNotifications(events) {
       const notified = getNotifiedSet();
 
       events.forEach(event => {
-        if (notified.has(event.id)) return;
-        if (activeAlarmsRef.current.has(event.id)) return;
         if (event.duration === 'day' && !event.time) return;
 
         const eventTime = getEventDateTime(event).getTime();
-        const diff = now - eventTime;
 
-        if (diff >= 0 && diff < NOTIFY_WINDOW_MS) {
-          triggerAlarm(event);
-        }
+        STAGES.forEach(stage => {
+          const stageKey = `${event.id}-${stage.key}`;
+          if (notified.has(stageKey)) return;
+
+          const triggerAt = eventTime - stage.offset;
+          const diff = now - triggerAt;
+
+          if (diff >= 0 && diff < NOTIFY_WINDOW_MS) {
+            triggerAlarm(event, stage);
+          }
+        });
       });
     };
 
@@ -201,7 +216,10 @@ export function useNotifications(events) {
     const handler = (e) => {
       if (e.data?.type === 'ALARM_TRIGGERED') {
         const event = events.find(ev => ev.id === e.data.eventId);
-        if (event) triggerAlarm(event);
+        if (event) {
+          const stage = STAGES.find(s => s.key === e.data.stageKey) || STAGES[2];
+          triggerAlarm(event, stage);
+        }
       }
       if (e.data?.type === 'STOP_ALARM') {
         stopAlarm(e.data.eventId);
@@ -211,5 +229,5 @@ export function useNotifications(events) {
     return () => navigator.serviceWorker?.removeEventListener('message', handler);
   }, [events, triggerAlarm, stopAlarm]);
 
-  return { stopAlarm, stopAllAlarms, activeAlarms: activeAlarmsRef };
+  return { stopAlarm, stopAllAlarms, activeAlarms: activeAlarmsRef, alarmPopup };
 }

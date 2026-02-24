@@ -10,7 +10,7 @@ import Toast from './components/Toast';
 import { loadEvents, saveEvents, loadTheme, saveTheme, removeNotified } from './utils/storage';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
-import { parseVoiceInput, formatShareText, isPast, getEventDateTime } from './utils/dateUtils';
+import { parseVoiceInput, formatShareText, getEventDateTime } from './utils/dateUtils';
 import './App.css';
 
 export default function App() {
@@ -25,7 +25,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState('list');
   const [voicePrefill, setVoicePrefill] = useState(null);
 
-  const { stopAlarm, activeAlarms } = useNotifications(events);
+  const { stopAlarm, activeAlarms, alarmPopup } = useNotifications(events);
 
   useEffect(() => {
     saveEvents(events);
@@ -94,7 +94,6 @@ export default function App() {
         const [y, m] = e.date.split('-').map(Number);
         return y === selectedMonth.year && m - 1 === selectedMonth.month;
       })
-      .filter(e => !isPast(e.date, e.time))
       .sort((a, b) => getEventDateTime(a) - getEventDateTime(b));
 
     if (monthEvents.length === 0) {
@@ -183,6 +182,19 @@ export default function App() {
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeleteEvent(null)}
         />
+      )}
+
+      {alarmPopup && (
+        <div className="modal-overlay" style={{ zIndex: 300 }}>
+          <div className="alarm-popup">
+            <div className="alarm-popup-icon pulse">⏳</div>
+            <div className="alarm-popup-title">{alarmPopup.event.title}</div>
+            <div className="alarm-popup-label">{alarmPopup.label}</div>
+            <button className="alarm-popup-stop" onClick={() => stopAlarm(alarmPopup.event.id)}>
+              Arrêter
+            </button>
+          </div>
+        </div>
       )}
 
       {toast && <Toast message={toast} onClose={() => setToast('')} />}

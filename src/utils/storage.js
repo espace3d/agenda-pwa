@@ -40,6 +40,10 @@ export function addNotified(eventId) {
 
 export function removeNotified(eventId) {
   const set = getNotifiedSet();
-  set.delete(eventId);
+  for (const key of set) {
+    if (key === eventId || key.startsWith(eventId + '-')) {
+      set.delete(key);
+    }
+  }
   localStorage.setItem(NOTIFIED_KEY, JSON.stringify([...set]));
 }
