@@ -25,7 +25,12 @@ export default function EventForm({ event, selectedMonth, onSave, onClose, event
 
   const [title, setTitle] = useState(event?.title || voicePrefill?.title || '');
   const [date, setDate] = useState(event?.date || voicePrefill?.date || defaultDate());
-  const [time, setTime] = useState(event?.time || voicePrefill?.time || '12:00');
+  const [time, setTime] = useState(() => {
+    if (event?.time) return event.time;
+    if (voicePrefill?.time) return voicePrefill.time;
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
   const [duration, setDuration] = useState(event?.duration || '30min');
   const [error, setError] = useState('');
 
