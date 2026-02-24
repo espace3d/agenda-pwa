@@ -9,7 +9,7 @@ const ASSETS = [
   '/alarm.wav'
 ];
 
-const NOTIFY_BEFORE_MS = 30 * 60 * 1000;
+const NOTIFY_WINDOW_MS = 60 * 1000;
 let storedEvents = [];
 
 async function storeEventsInCache(events) {
@@ -133,10 +133,9 @@ function checkAndNotify() {
     }
 
     const eventTime = eventDate.getTime();
-    const notifyAt = eventTime - NOTIFY_BEFORE_MS;
-    const diff = now - notifyAt;
+    const diff = now - eventTime;
 
-    if (diff >= 0 && diff < NOTIFY_BEFORE_MS) {
+    if (diff >= 0 && diff < NOTIFY_WINDOW_MS) {
       if (!self.__notified) self.__notified = new Set();
       self.__notified.add(event.id);
 
@@ -144,7 +143,7 @@ function checkAndNotify() {
       const dateStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
 
       self.registration.showNotification(`⏳ ${event.title}`, {
-        body: `${dateStr}${timeStr} — dans 30 minutes`,
+        body: `${dateStr}${timeStr} — c'est l'heure !`,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         tag: `event-${event.id}`,

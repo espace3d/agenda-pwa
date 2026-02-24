@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { getEventDateTime } from '../utils/dateUtils';
 import { getNotifiedSet, addNotified } from '../utils/storage';
 
-const NOTIFY_BEFORE_MS = 30 * 60 * 1000;
+const NOTIFY_WINDOW_MS = 60 * 1000;
 const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 5;
 const CHECK_INTERVAL_MS = 15 * 1000;
@@ -70,7 +70,7 @@ async function showNotification(event) {
   const timeStr = event.time ? ` à ${event.time.replace(':', 'h')}` : '';
   const [y, m, d] = event.date.split('-');
   const dateStr = `${d}/${m}/${y}`;
-  const body = `${dateStr}${timeStr} — dans 30 minutes`;
+  const body = `${dateStr}${timeStr} — c'est l'heure !`;
 
   try {
     const reg = await navigator.serviceWorker?.ready;
@@ -169,10 +169,9 @@ export function useNotifications(events) {
         if (event.duration === 'day' && !event.time) return;
 
         const eventTime = getEventDateTime(event).getTime();
-        const notifyAt = eventTime - NOTIFY_BEFORE_MS;
-        const diff = now - notifyAt;
+        const diff = now - eventTime;
 
-        if (diff >= 0 && diff < NOTIFY_BEFORE_MS) {
+        if (diff >= 0 && diff < NOTIFY_WINDOW_MS) {
           triggerAlarm(event);
         }
       });
