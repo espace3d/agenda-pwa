@@ -14,7 +14,7 @@ const DURATIONS = [
   { value: 'day', label: 'Journée' },
 ];
 
-export default function EventForm({ event, selectedMonth, onSave, onClose, events }) {
+export default function EventForm({ event, selectedMonth, onSave, onClose, events, voicePrefill }) {
   const isEdit = !!event;
   const defaultDate = () => {
     const y = selectedMonth.year;
@@ -23,9 +23,9 @@ export default function EventForm({ event, selectedMonth, onSave, onClose, event
     return `${y}-${m}-${d}`;
   };
 
-  const [title, setTitle] = useState(event?.title || '');
-  const [date, setDate] = useState(event?.date || defaultDate());
-  const [time, setTime] = useState(event?.time || '12:00');
+  const [title, setTitle] = useState(event?.title || voicePrefill?.title || '');
+  const [date, setDate] = useState(event?.date || voicePrefill?.date || defaultDate());
+  const [time, setTime] = useState(event?.time || voicePrefill?.time || '12:00');
   const [duration, setDuration] = useState(event?.duration || '30min');
   const [error, setError] = useState('');
 

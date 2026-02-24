@@ -23,6 +23,7 @@ export default function App() {
   const [deleteEvent, setDeleteEvent] = useState(null);
   const [toast, setToast] = useState('');
   const [viewMode, setViewMode] = useState('list');
+  const [voicePrefill, setVoicePrefill] = useState(null);
 
   const { stopAlarm, activeAlarms } = useNotifications(events);
 
@@ -114,29 +115,15 @@ export default function App() {
   const handleVoiceResult = useCallback((transcript) => {
     const parsed = parseVoiceInput(transcript);
     if (parsed.title) {
-      const newEvent = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      setVoicePrefill({
         title: parsed.title,
-        date: parsed.date || `${selectedMonth.year}-${String(selectedMonth.month + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
-        time: parsed.time || '12:00',
-        duration: '30min'
-      };
-
-      const isDuplicate = events.some(ev =>
-        ev.title.toLowerCase() === newEvent.title.toLowerCase()
-        && ev.date === newEvent.date
-        && ev.time === newEvent.time
-      );
-
-      if (isDuplicate) {
-        setToast('Un événement identique existe déjà à cette date et heure.');
-        return;
-      }
-
-      setEvents(prev => [...prev, newEvent]);
-      setToast(`"${parsed.title}" ajouté`);
+        date: parsed.date || null,
+        time: parsed.time || null
+      });
+      setEditingEvent(null);
+      setFormOpen(true);
     }
-  }, [events, selectedMonth]);
+  }, []);
 
   const { dictating, dictLiveText, toggleDictation } = useSpeechRecognition(handleVoiceResult);
 
@@ -179,8 +166,9 @@ export default function App() {
           event={editingEvent}
           selectedMonth={selectedMonth}
           onSave={handleSaveEvent}
-          onClose={() => { setFormOpen(false); setEditingEvent(null); }}
+          onClose={() => { setFormOpen(false); setEditingEvent(null); setVoicePrefill(null); }}
           events={events}
+          voicePrefill={voicePrefill}
         />
       )}
 
