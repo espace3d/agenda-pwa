@@ -747,9 +747,15 @@ body {
 }
 
 .datepicker-cell.selected {
-    background: #000;
-    color: #fff;
+    background: #000 !important;
+    color: #fff !important;
     font-weight: 700;
+    border: none !important;
+}
+
+.datepicker-cell.selected:hover {
+    background: #222 !important;
+    color: #fff !important;
 }
 
 .datepicker-actions {
