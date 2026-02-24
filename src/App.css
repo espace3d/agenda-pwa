@@ -242,6 +242,7 @@ body {
     display: flex;
     flex-direction: column;
     transition: background 0.15s, border-color 0.15s;
+    margin-top: 4px;
 }
 
 .event-list-scroll {
@@ -913,6 +914,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-top: 4px;
 }
 
 .calendar-grid-container {
