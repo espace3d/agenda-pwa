@@ -8,12 +8,21 @@ const MAX_RETRIES = 5;
 const CHECK_INTERVAL_MS = 15 * 1000;
 
 let alarmAudio = null;
+let alarmPlayCount = 0;
+let alarmStopped = false;
 
 function getAlarmAudio() {
   if (!alarmAudio) {
     alarmAudio = new Audio('/alarm.wav');
-    alarmAudio.loop = true;
+    alarmAudio.loop = false;
     alarmAudio.volume = 1.0;
+    alarmAudio.addEventListener('ended', () => {
+      alarmPlayCount++;
+      if (alarmPlayCount < 5 && !alarmStopped) {
+        alarmAudio.currentTime = 0;
+        alarmAudio.play().catch(() => {});
+      }
+    });
   }
   return alarmAudio;
 }
@@ -21,6 +30,8 @@ function getAlarmAudio() {
 function playAlarmSound() {
   try {
     const audio = getAlarmAudio();
+    alarmPlayCount = 0;
+    alarmStopped = false;
     audio.currentTime = 0;
     audio.play().catch(() => {});
   } catch {}
@@ -28,6 +39,7 @@ function playAlarmSound() {
 
 function stopAlarmSound() {
   try {
+    alarmStopped = true;
     if (alarmAudio) {
       alarmAudio.pause();
       alarmAudio.currentTime = 0;
