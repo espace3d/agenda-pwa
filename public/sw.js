@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agenda-v2';
+const CACHE_NAME = 'agenda-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -14,7 +14,7 @@ const STAGES = [
   { offset: 10 * 60 * 1000, key: '10', label: 'dans 10 minutes' },
   { offset: 0, key: '0', label: "c'est l'heure !" },
 ];
-const NOTIFY_WINDOW_MS = 60 * 1000;
+const NOTIFY_WINDOW_MS = 5 * 60 * 1000;
 let storedEvents = [];
 
 async function storeEventsInCache(events) {

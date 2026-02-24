@@ -7,7 +7,7 @@ const STAGES = [
   { offset: 10 * 60 * 1000, key: '10', label: 'dans 10 minutes' },
   { offset: 0, key: '0', label: "c'est l'heure !" },
 ];
-const NOTIFY_WINDOW_MS = 60 * 1000;
+const NOTIFY_WINDOW_MS = 5 * 60 * 1000;
 const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 5;
 const CHECK_INTERVAL_MS = 15 * 1000;
@@ -112,61 +112,71 @@ export function useNotifications(events) {
   const activeAlarmsRef = useRef(new Map());
   const checkIntervalRef = useRef(null);
   const [alarmPopup, setAlarmPopup] = useState(null);
+  const alarmPopupRef = useRef(null);
+
+  const updatePopup = useCallback((value) => {
+    alarmPopupRef.current = value;
+    setAlarmPopup(value);
+  }, []);
 
   const triggerAlarm = useCallback((event, stage) => {
-    // Stop previous alarm for this event (previous stage)
+    // Stop previous alarm for this event (previous stage) silently
     const existing = activeAlarmsRef.current.get(event.id);
-    if (existing) existing.stop(true);
+    if (existing) {
+      existing.stopped = true;
+      clearTimeout(existing.retryTimer);
+      stopAlarmSound();
+    }
 
-    let retryCount = 0;
-    let retryTimer = null;
-    let stopped = false;
+    const alarm = { stopped: false, retryTimer: null, retryCount: 0 };
 
     const runSequence = () => {
-      if (stopped) return;
+      if (alarm.stopped) return;
       playAlarmSound();
       vibrate();
       showNotification(event, stage.label);
     };
 
     const scheduleRetry = () => {
-      if (stopped || retryCount >= MAX_RETRIES) {
-        if (!stopped) stopAlarmSound();
-        activeAlarmsRef.current.delete(event.id);
+      if (alarm.stopped || alarm.retryCount >= MAX_RETRIES) {
+        if (!alarm.stopped) stopAlarmSound();
         return;
       }
-      retryTimer = setTimeout(() => {
-        retryCount++;
+      alarm.retryTimer = setTimeout(() => {
+        alarm.retryCount++;
         runSequence();
         scheduleRetry();
       }, RETRY_INTERVAL_MS);
     };
 
-    const stop = (silent) => {
-      stopped = true;
-      clearTimeout(retryTimer);
-      stopAlarmSound();
-      activeAlarmsRef.current.delete(event.id);
-      if (!silent) setAlarmPopup(null);
-    };
-
-    activeAlarmsRef.current.set(event.id, { stop });
+    activeAlarmsRef.current.set(event.id, alarm);
     addNotified(`${event.id}-${stage.key}`);
-    setAlarmPopup({ event, label: stage.label });
+    updatePopup({ event, label: stage.label });
     runSequence();
     scheduleRetry();
-  }, []);
+  }, [updatePopup]);
 
   const stopAlarm = useCallback((eventId) => {
     const alarm = activeAlarmsRef.current.get(eventId);
-    if (alarm) alarm.stop();
-  }, []);
+    if (alarm) {
+      alarm.stopped = true;
+      clearTimeout(alarm.retryTimer);
+      stopAlarmSound();
+      activeAlarmsRef.current.delete(eventId);
+    }
+    // Always clear popup
+    updatePopup(null);
+  }, [updatePopup]);
 
   const stopAllAlarms = useCallback(() => {
-    activeAlarmsRef.current.forEach(alarm => alarm.stop(true));
+    activeAlarmsRef.current.forEach(alarm => {
+      alarm.stopped = true;
+      clearTimeout(alarm.retryTimer);
+    });
     activeAlarmsRef.current.clear();
-    setAlarmPopup(null);
-  }, []);
+    stopAlarmSound();
+    updatePopup(null);
+  }, [updatePopup]);
 
   useEffect(() => {
     const checkEvents = () => {
