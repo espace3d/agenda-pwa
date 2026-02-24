@@ -1,90 +1,101 @@
-import { useRef, useEffect, useCallback } from 'react';
-
-const ITEM_HEIGHT = 38;
-const VISIBLE_COUNT = 3;
-const HALF = Math.floor(VISIBLE_COUNT / 2);
-
-function WheelColumn({ items, value, onChange }) {
-  const ref = useRef(null);
-  const isScrollingRef = useRef(false);
-  const timeoutRef = useRef(null);
-
-  const selectedIndex = items.indexOf(value);
-
-  useEffect(() => {
-    if (!ref.current || isScrollingRef.current) return;
-    ref.current.scrollTop = selectedIndex * ITEM_HEIGHT;
-  }, [selectedIndex]);
-
-  const snapToNearest = useCallback(() => {
-    if (!ref.current) return;
-    const scrollTop = ref.current.scrollTop;
-    const index = Math.round(scrollTop / ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(index, items.length - 1));
-    ref.current.scrollTo({ top: clamped * ITEM_HEIGHT, behavior: 'smooth' });
-    if (items[clamped] !== value) {
-      onChange(items[clamped]);
-    }
-  }, [items, value, onChange]);
-
-  const handleScroll = () => {
-    isScrollingRef.current = true;
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      isScrollingRef.current = false;
-      snapToNearest();
-    }, 80);
-  };
-
-  return (
-    <div className="wheel-column">
-      <div
-        className="wheel-scroll"
-        ref={ref}
-        onScroll={handleScroll}
-        style={{ height: ITEM_HEIGHT * VISIBLE_COUNT }}
-      >
-        <div style={{ height: ITEM_HEIGHT * HALF }} />
-        {items.map((item, i) => (
-          <div
-            key={i}
-            className={`wheel-item${item === value ? ' active' : ''}`}
-            style={{ height: ITEM_HEIGHT }}
-            onClick={() => {
-              onChange(item);
-              if (ref.current) {
-                ref.current.scrollTo({ top: i * ITEM_HEIGHT, behavior: 'smooth' });
-              }
-            }}
-          >
-            {item}
-          </div>
-        ))}
-        <div style={{ height: ITEM_HEIGHT * HALF }} />
-      </div>
-    </div>
-  );
-}
-
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+import { useRef } from 'react';
 
 export default function TimePicker({ value, onChange }) {
   const [h, m] = (value || '12:00').split(':');
+  const digits = [h[0] || '1', h[1] || '2', m[0] || '0', m[1] || '0'];
+  const refs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+
+  const focusDigit = (index) => {
+    if (refs[index]?.current) {
+      refs[index].current.focus();
+      refs[index].current.select();
+    }
+  };
+
+  const handleDigit = (index, digit) => {
+    const d = Number(digit);
+    if (isNaN(d)) return;
+
+    const newDigits = [...digits];
+
+    // Validate digit based on position
+    if (index === 0 && d > 2) return;
+    if (index === 1 && newDigits[0] === '2' && d > 3) return;
+    if (index === 2 && d > 5) return;
+
+    newDigits[index] = String(d);
+
+    // Fix h1 if h0 changed to 2 and h1 > 3
+    if (index === 0 && d === 2 && Number(newDigits[1]) > 3) {
+      newDigits[1] = '3';
+    }
+
+    const newH = newDigits[0] + newDigits[1];
+    const newM = newDigits[2] + newDigits[3];
+    onChange(`${newH}:${newM}`);
+
+    // Auto-advance to next digit
+    if (index < 3) {
+      setTimeout(() => focusDigit(index + 1), 0);
+    } else {
+      refs[index].current?.blur();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      const newDigits = [...digits];
+      newDigits[index] = '0';
+      const newH = newDigits[0] + newDigits[1];
+      const newM = newDigits[2] + newDigits[3];
+      onChange(`${newH}:${newM}`);
+      if (index > 0) {
+        setTimeout(() => focusDigit(index - 1), 0);
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
+      focusDigit(index - 1);
+    } else if (e.key === 'ArrowRight' && index < 3) {
+      e.preventDefault();
+      focusDigit(index + 1);
+    } else if (e.key >= '0' && e.key <= '9') {
+      e.preventDefault();
+      handleDigit(index, e.key);
+    } else if (e.key !== 'Tab') {
+      e.preventDefault();
+    }
+  };
+
+  const handleInput = (index, e) => {
+    const val = e.target.value.replace(/\D/g, '');
+    if (val.length > 0) {
+      handleDigit(index, val[val.length - 1]);
+    }
+  };
 
   return (
-    <div className="time-picker">
-      <WheelColumn
-        items={HOURS}
-        value={h}
-        onChange={(newH) => onChange(`${newH}:${m}`)}
-      />
-      <div className="time-picker-sep">:</div>
-      <WheelColumn
-        items={MINUTES}
-        value={m}
-        onChange={(newM) => onChange(`${h}:${newM}`)}
-      />
+    <div className="time-input">
+      <div className="time-input-fields">
+        {digits.map((digit, i) => (
+          <span key={i} className="time-input-group">
+            <input
+              ref={refs[i]}
+              type="text"
+              inputMode="numeric"
+              className="time-digit"
+              value={digit}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              onInput={(e) => handleInput(i, e)}
+              onFocus={(e) => e.target.select()}
+              onClick={(e) => e.target.select()}
+              readOnly={false}
+              autoComplete="off"
+            />
+            {i === 1 && <span className="time-input-sep">:</span>}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
