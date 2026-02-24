@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import MonthSelector from './components/MonthSelector';
 import EventList from './components/EventList';
+import CalendarView from './components/CalendarView';
 import EventForm from './components/EventForm';
 import ActionBar from './components/ActionBar';
 import ConfirmModal from './components/ConfirmModal';
@@ -21,6 +22,7 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [deleteEvent, setDeleteEvent] = useState(null);
   const [toast, setToast] = useState('');
+  const [viewMode, setViewMode] = useState('list');
 
   const { stopAlarm, activeAlarms } = useNotifications(events);
 
@@ -34,6 +36,7 @@ export default function App() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleView = () => setViewMode(v => v === 'list' ? 'calendar' : 'list');
 
   useEffect(() => {
     const handler = () => {
@@ -139,16 +142,26 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Header theme={theme} onToggleTheme={toggleTheme} />
+      <Header theme={theme} onToggleTheme={toggleTheme} viewMode={viewMode} onToggleView={toggleView} />
       <MonthSelector selectedMonth={selectedMonth} onSelectMonth={setSelectedMonth} />
-      <EventList
-        events={events}
-        selectedMonth={selectedMonth}
-        onEdit={handleEdit}
-        onDelete={setDeleteEvent}
-        activeAlarms={activeAlarms}
-        onStopAlarm={stopAlarm}
-      />
+
+      {viewMode === 'list' ? (
+        <EventList
+          events={events}
+          selectedMonth={selectedMonth}
+          onEdit={handleEdit}
+          onDelete={setDeleteEvent}
+          activeAlarms={activeAlarms}
+          onStopAlarm={stopAlarm}
+        />
+      ) : (
+        <CalendarView
+          events={events}
+          selectedMonth={selectedMonth}
+          onEdit={handleEdit}
+          onDelete={setDeleteEvent}
+        />
+      )}
 
       {dictating && dictLiveText && (
         <div className="dict-live-bar">{dictLiveText}</div>

@@ -73,7 +73,7 @@ export default function EventForm({ event, selectedMonth, onSave, onClose, event
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-top" onClick={onClose}>
       <div className="modal-content event-form" onClick={e => e.stopPropagation()}>
         <div className="form-header">
           <h3>{isEdit ? 'Modifier' : 'Nouvel événement'}</h3>

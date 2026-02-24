@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const DAYS = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
 const MONTHS = [
@@ -17,7 +17,7 @@ function formatDisplay(dateStr) {
 
 export default function DatePicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
-  const [y, m, d] = (value || '2026-01-01').split('-').map(Number);
+  const [y, m] = (value || '2026-01-01').split('-').map(Number);
   const [viewYear, setViewYear] = useState(y);
   const [viewMonth, setViewMonth] = useState(m - 1);
   const [tempDate, setTempDate] = useState(value);
@@ -95,12 +95,15 @@ export default function DatePicker({ value, onChange }) {
       </button>
 
       {open && (
-        <div className="modal-overlay" onClick={() => setOpen(false)}>
-          <div className="datepicker-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay modal-top" onClick={() => setOpen(false)}>
+          <div className="datepicker-modal datepicker-fullheight" onClick={e => e.stopPropagation()}>
             <div className="datepicker-header">
               <span className="datepicker-header-label">
                 {tempDate ? formatDisplay(tempDate) : 'Sélectionner une date'}
               </span>
+              <button type="button" className="close-btn" onClick={() => setOpen(false)}>
+                <X size={18} />
+              </button>
             </div>
 
             <div className="datepicker-nav">

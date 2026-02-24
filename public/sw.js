@@ -1,15 +1,35 @@
-const CACHE_NAME = 'agenda-v1';
+const CACHE_NAME = 'agenda-v2';
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/alarm.wav'
 ];
 
 const NOTIFY_BEFORE_MS = 30 * 60 * 1000;
 let storedEvents = [];
+
+async function storeEventsInCache(events) {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const response = new Response(JSON.stringify(events));
+    await cache.put('/_events_data', response);
+  } catch {}
+}
+
+async function loadEventsFromCache() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const response = await cache.match('/_events_data');
+    if (!response) return [];
+    return JSON.parse(await response.text());
+  } catch {
+    return [];
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -22,10 +42,12 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(() => loadEventsFromCache()).then(events => {
+      storedEvents = events;
+      checkAndNotify();
+    })
   );
   self.clients.claim();
-  checkAndNotify();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -47,6 +69,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SYNC_EVENTS') {
     storedEvents = event.data.events || [];
+    storeEventsInCache(storedEvents);
     checkAndNotify();
   }
 });
@@ -77,14 +100,18 @@ self.addEventListener('notificationclick', (event) => {
 
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'check-events') {
-    event.waitUntil(checkAndNotify());
+    event.waitUntil(
+      loadEventsFromCache().then(events => {
+        storedEvents = events;
+        checkAndNotify();
+      })
+    );
   }
 });
 
 function getNotifiedFromStorage() {
   try {
-    const data = self.__notified || new Set();
-    return data;
+    return self.__notified || new Set();
   } catch {
     return new Set();
   }
@@ -107,9 +134,9 @@ function checkAndNotify() {
 
     const eventTime = eventDate.getTime();
     const notifyAt = eventTime - NOTIFY_BEFORE_MS;
-    const diff = notifyAt - now;
+    const diff = now - notifyAt;
 
-    if (diff <= 0 && diff > -(5 * 60 * 1000)) {
+    if (diff >= 0 && diff < NOTIFY_BEFORE_MS) {
       if (!self.__notified) self.__notified = new Set();
       self.__notified.add(event.id);
 
@@ -117,11 +144,12 @@ function checkAndNotify() {
       const dateStr = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
 
       self.registration.showNotification(`⏳ ${event.title}`, {
-        body: `${dateStr}${timeStr} - dans 30 minutes`,
+        body: `${dateStr}${timeStr} — dans 30 minutes`,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         tag: `event-${event.id}`,
         requireInteraction: true,
+        silent: false,
         vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
         actions: [{ action: 'stop', title: 'Arrêter' }]
       });

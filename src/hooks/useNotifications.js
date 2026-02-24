@@ -7,39 +7,32 @@ const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 5;
 const CHECK_INTERVAL_MS = 15 * 1000;
 
-let audioCtx = null;
+let alarmAudio = null;
 
-function getAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function getAlarmAudio() {
+  if (!alarmAudio) {
+    alarmAudio = new Audio('/alarm.wav');
+    alarmAudio.loop = true;
+    alarmAudio.volume = 1.0;
   }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-  return audioCtx;
+  return alarmAudio;
 }
 
-function playBeeps() {
+function playAlarmSound() {
   try {
-    const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    for (let i = 0; i < 5; i++) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      osc.type = 'sine';
-      gain.gain.value = 0.4;
-      const start = now + i * 0.4;
-      osc.start(start);
-      gain.gain.setValueAtTime(0.4, start);
-      gain.gain.exponentialRampToValueAtTime(0.01, start + 0.15);
-      osc.stop(start + 0.2);
+    const audio = getAlarmAudio();
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  } catch {}
+}
+
+function stopAlarmSound() {
+  try {
+    if (alarmAudio) {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
     }
-  } catch (e) {
-    console.warn('Beep failed:', e);
-  }
+  } catch {}
 }
 
 function vibrate() {
@@ -76,6 +69,7 @@ async function showNotification(event) {
         badge: '/icons/icon-192.png',
         tag: `event-${event.id}`,
         requireInteraction: true,
+        silent: false,
         vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
         actions: [{ action: 'stop', title: 'Arrêter' }]
       });
@@ -94,7 +88,8 @@ async function showNotification(event) {
 
 export function requestNotificationPermission() {
   ensureNotificationPermission();
-  try { getAudioContext(); } catch {}
+  // Pre-load the alarm audio so it's ready when needed
+  try { getAlarmAudio(); } catch {}
 }
 
 export function useNotifications(events) {
@@ -110,13 +105,14 @@ export function useNotifications(events) {
 
     const runSequence = () => {
       if (stopped) return;
-      playBeeps();
+      playAlarmSound();
       vibrate();
       showNotification(event);
     };
 
     const scheduleRetry = () => {
       if (stopped || retryCount >= MAX_RETRIES) {
+        if (!stopped) stopAlarmSound();
         activeAlarmsRef.current.delete(event.id);
         return;
       }
@@ -130,6 +126,7 @@ export function useNotifications(events) {
     const stop = () => {
       stopped = true;
       clearTimeout(retryTimer);
+      stopAlarmSound();
       activeAlarmsRef.current.delete(event.id);
     };
 
@@ -195,10 +192,13 @@ export function useNotifications(events) {
         const event = events.find(ev => ev.id === e.data.eventId);
         if (event) triggerAlarm(event);
       }
+      if (e.data?.type === 'STOP_ALARM') {
+        stopAlarm(e.data.eventId);
+      }
     };
     navigator.serviceWorker?.addEventListener('message', handler);
     return () => navigator.serviceWorker?.removeEventListener('message', handler);
-  }, [events, triggerAlarm]);
+  }, [events, triggerAlarm, stopAlarm]);
 
   return { stopAlarm, stopAllAlarms, activeAlarms: activeAlarmsRef };
 }
