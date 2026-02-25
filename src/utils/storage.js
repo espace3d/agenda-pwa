@@ -1,6 +1,7 @@
 const EVENTS_KEY = 'agenda_events';
 const THEME_KEY = 'agenda_theme';
 const NOTIFIED_KEY = 'agenda_notified';
+const COLORS_KEY = 'agenda_custom_colors';
 
 export function loadEvents() {
   try {
@@ -46,4 +47,19 @@ export function removeNotified(eventId) {
     }
   }
   localStorage.setItem(NOTIFIED_KEY, JSON.stringify([...set]));
+}
+
+const DEFAULT_COLORS = { accentColor: '#d946ef', darkColor: '#1a1a1a' };
+
+export function loadCustomColors() {
+  try {
+    const data = localStorage.getItem(COLORS_KEY);
+    return data ? { ...DEFAULT_COLORS, ...JSON.parse(data) } : { ...DEFAULT_COLORS };
+  } catch {
+    return { ...DEFAULT_COLORS };
+  }
+}
+
+export function saveCustomColors(colors) {
+  localStorage.setItem(COLORS_KEY, JSON.stringify(colors));
 }

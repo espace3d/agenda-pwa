@@ -11,6 +11,8 @@ const NOTIFY_WINDOW_MS = 5 * 60 * 1000;
 const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_RETRIES = 5;
 const CHECK_INTERVAL_MS = 15 * 1000;
+const SYNC_DEBOUNCE_MS = 2000;
+const MAX_FUTURE_DAYS = 31;
 
 let alarmAudio = null;
 let alarmPlayCount = 0;
@@ -85,6 +87,7 @@ async function showNotification(event, label) {
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         tag: `event-${event.id}`,
+        data: { eventId: event.id },
         requireInteraction: true,
         silent: false,
         vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
@@ -99,6 +102,74 @@ async function showNotification(event, label) {
       body,
       icon: '/icons/icon-192.png',
       tag: `event-${event.id}`
+    });
+  } catch {}
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function getPushSubscription() {
+  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (!vapidKey) return null;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+    if (subscription) return subscription;
+
+    subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey),
+    });
+    return subscription;
+  } catch {
+    return null;
+  }
+}
+
+let syncTimer = null;
+
+async function syncPushSubscription(events) {
+  const subscription = await getPushSubscription();
+  if (!subscription) return;
+
+  const now = Date.now();
+  const maxFuture = now + MAX_FUTURE_DAYS * 24 * 60 * 60 * 1000;
+
+  const futureEvents = events
+    .filter(e => {
+      if (e.duration === 'day' && !e.time) return false;
+      if (!e.time) return false;
+      const eventTime = getEventDateTime(e).getTime();
+      return eventTime > now && eventTime < maxFuture;
+    })
+    .map(e => ({
+      id: e.id,
+      title: e.title,
+      date: e.date,
+      time: e.time,
+      duration: e.duration,
+    }));
+
+  try {
+    await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        events: futureEvents,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
     });
   } catch {}
 }
@@ -220,6 +291,18 @@ export function useNotifications(events) {
         reg.periodicSync.register('check-events', { minInterval: 60000 }).catch(() => {});
       }
     });
+  }, [events]);
+
+  // Sync push subscription with backend (debounced)
+  useEffect(() => {
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      syncPushSubscription(events);
+    }, SYNC_DEBOUNCE_MS);
+
+    return () => {
+      if (syncTimer) clearTimeout(syncTimer);
+    };
   }, [events]);
 
   useEffect(() => {

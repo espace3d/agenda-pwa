@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Settings } from 'lucide-react';
 import Header from './components/Header';
 import MonthSelector from './components/MonthSelector';
 import EventList from './components/EventList';
@@ -6,8 +7,9 @@ import CalendarView from './components/CalendarView';
 import EventForm from './components/EventForm';
 import ActionBar from './components/ActionBar';
 import ConfirmModal from './components/ConfirmModal';
+import SettingsPanel from './components/SettingsPanel';
 import Toast from './components/Toast';
-import { loadEvents, saveEvents, loadTheme, saveTheme, removeNotified } from './utils/storage';
+import { loadEvents, saveEvents, loadTheme, saveTheme, removeNotified, loadCustomColors, saveCustomColors } from './utils/storage';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useNotifications, requestNotificationPermission } from './hooks/useNotifications';
 import { parseVoiceInput, formatShareText, getEventDateTime } from './utils/dateUtils';
@@ -24,6 +26,8 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [viewMode, setViewMode] = useState('list');
   const [voicePrefill, setVoicePrefill] = useState(null);
+  const [customColors, setCustomColors] = useState(() => loadCustomColors());
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { stopAlarm, activeAlarms, alarmPopup } = useNotifications(events);
 
@@ -39,6 +43,36 @@ export default function App() {
     const metaStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
     if (metaStatusBar) metaStatusBar.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
   }, [theme]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      const { accentColor, darkColor } = customColors;
+      root.style.setProperty('--accent-info', accentColor);
+      root.style.setProperty('--nav-bg', darkColor);
+      root.style.setProperty('--btn-round-bg', darkColor);
+      root.style.setProperty('--btn-round-hover', darkColor + 'cc');
+      root.style.setProperty('--title-badge-bg', darkColor);
+      root.style.setProperty('--title-badge-border', darkColor);
+      root.style.setProperty('--input-border', darkColor);
+      root.style.setProperty('--picker-selected-bg', darkColor);
+      root.style.setProperty('--nav-btn-add', darkColor + 'cc');
+      root.style.setProperty('--text-primary', darkColor);
+      root.style.setProperty('--chip-active-text', darkColor);
+      root.style.setProperty('--picker-bar-text', darkColor);
+      root.style.setProperty('--theme-toggle-hover', darkColor);
+    } else {
+      ['--accent-info','--nav-bg','--btn-round-bg','--btn-round-hover','--title-badge-bg',
+       '--title-badge-border','--input-border','--picker-selected-bg','--nav-btn-add',
+       '--text-primary','--chip-active-text','--picker-bar-text','--theme-toggle-hover'
+      ].forEach(v => root.style.removeProperty(v));
+    }
+  }, [theme, customColors]);
+
+  const handleColorsChange = (colors) => {
+    setCustomColors(colors);
+    saveCustomColors(colors);
+  };
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
   const toggleView = () => setViewMode(v => v === 'list' ? 'calendar' : 'list');
@@ -163,6 +197,18 @@ export default function App() {
         onToggleDictation={toggleDictation}
         dictating={dictating}
       />
+
+      <button className="settings-gear" onClick={() => setSettingsOpen(true)} title="Réglages">
+        <Settings size={18} />
+      </button>
+
+      {settingsOpen && (
+        <SettingsPanel
+          colors={customColors}
+          onChange={handleColorsChange}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       {formOpen && (
         <EventForm

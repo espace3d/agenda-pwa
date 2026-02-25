@@ -1139,3 +1139,95 @@ body {
     from { opacity: 0; transform: scale(0.9); }
     to { opacity: 1; transform: scale(1); }
 }
+
+/* Settings Gear */
+.settings-gear {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.settings-gear:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+/* Settings Panel */
+.settings-panel {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 20px 16px;
+    max-width: 320px;
+    width: 90%;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-sep);
+}
+
+.settings-row label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.settings-row input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border-card);
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 2px;
+    background: var(--surface);
+}
+
+.settings-row input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.settings-row input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 7px;
+}
+
+.settings-row input[type="color"]::-moz-color-swatch {
+    border: none;
+    border-radius: 7px;
+}
+
+.settings-reset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 6px 0;
+    transition: color 0.15s;
+}
+
+.settings-reset:hover {
+    color: var(--text-primary);
+}

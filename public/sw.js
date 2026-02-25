@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agenda-v3';
+const CACHE_NAME = 'agenda-v4';
 const ASSETS = [
   '/',
   '/index.html',
@@ -57,6 +57,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/')) return;
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request).then(response => {
@@ -79,16 +81,55 @@ self.addEventListener('message', (event) => {
   }
 });
 
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    return;
+  }
+
+  const { title, body, eventId, stageKey } = payload;
+
+  event.waitUntil(
+    self.registration.showNotification(title || '⏳ Rappel', {
+      body: body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: eventId ? `event-${eventId}` : 'push-notification',
+      data: { eventId, stageKey },
+      requireInteraction: true,
+      silent: false,
+      vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
+      actions: [{ action: 'stop', title: 'Arrêter' }]
+    }).then(() => {
+      return self.clients.matchAll();
+    }).then(clients => {
+      if (eventId) {
+        clients.forEach(client => {
+          client.postMessage({ type: 'ALARM_TRIGGERED', eventId, stageKey });
+        });
+      }
+    })
+  );
+});
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  const eventId = event.notification.data?.eventId || event.notification.tag?.replace('event-', '');
+
   if (event.action === 'stop') {
-    const eventId = event.notification.tag?.replace('event-', '');
     if (eventId) {
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({ type: 'STOP_ALARM', eventId });
-        });
-      });
+      event.waitUntil(
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ type: 'STOP_ALARM', eventId });
+          });
+        })
+      );
     }
   } else {
     event.waitUntil(
@@ -157,6 +198,7 @@ function checkAndNotify() {
           icon: '/icons/icon-192.png',
           badge: '/icons/icon-192.png',
           tag: `event-${event.id}`,
+          data: { eventId: event.id, stageKey: stage.key },
           requireInteraction: true,
           silent: false,
           vibrate: [200, 100, 200, 100, 200, 100, 200, 100, 200],
