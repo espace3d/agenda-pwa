@@ -18,9 +18,11 @@ export default function EventForm({ event, selectedMonth, onSave, onClose, event
   const isEdit = !!event;
   const defaultDate = () => {
     const y = selectedMonth.year;
-    const m = String(selectedMonth.month + 1).padStart(2, '0');
-    const d = String(new Date().getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    const m = selectedMonth.month;
+    const today = new Date().getDate();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const d = String(Math.min(today, daysInMonth)).padStart(2, '0');
+    return `${y}-${String(m + 1).padStart(2, '0')}-${d}`;
   };
 
   const [title, setTitle] = useState(event?.title || voicePrefill?.title || '');

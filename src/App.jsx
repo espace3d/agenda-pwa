@@ -99,6 +99,7 @@ export default function App() {
     removeNotified(eventData.id);
     setFormOpen(false);
     setEditingEvent(null);
+    setVoicePrefill(null);
     setToast(editingEvent ? 'Événement modifié' : 'Événement créé');
   };
 
@@ -119,6 +120,7 @@ export default function App() {
 
   const handleAdd = () => {
     setEditingEvent(null);
+    setVoicePrefill(null);
     setFormOpen(true);
   };
 
